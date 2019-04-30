@@ -1,0 +1,3 @@
+[build]
+  command = "npm install && npx parcel build src/index.html"
+  publish = "dist"

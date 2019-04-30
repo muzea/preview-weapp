@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-hans">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
+    <title>preview wxml</title>
+  </head>
+  <body style="text-align: center; padding: 24px 0">
+    <textarea style="min-height: 300px; min-width: 400px;" id="input"></textarea>
+    <br /><button class="pure-button pure-button-primary" id="run" style="margin: 8px 0">run</button><br />
+    <div id="weapp"></div>
+  </body>
+  <script src="./boot.ts"></script>
+  <style>
+    #weapp {
+      width: 750px;
+      height: 1000px;
+      border: 1px #000 solid;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .block {
+      height: 80px;
+      width: 80px;
+      text-align: center;
+      line-height: 80px;
+      display: inline-block;
+    }
+    .inline {
+      display: inline-block;
+    }
+    .right {
+      text-align: right;
+    }
+    view {
+      display: block;
+    }
+  </style>
+</html>
