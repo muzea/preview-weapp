@@ -37,7 +37,7 @@ function preview(mountElement: HTMLDivElement, wxml: string, store: any) {
   const container = document.createElement('div');
   container.innerHTML = wxml;
   const result = walk(container.childNodes, store);
-  console.log(result);
+  // console.log(result);
   mountElement.innerHTML = result;
 }
 

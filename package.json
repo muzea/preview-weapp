@@ -2,8 +2,11 @@
   "name": "preview-weapp",
   "version": "0.0.0-dev",
   "license": "MIT",
+  "scripts": {
+    "dev": "parcel server src/index.html"
+  },
   "devDependencies": {
     "parcel-bundler": "^1.12.3",
-    "typescript": "^3.4.5"
+    "typescript": "^3.5.3"
   }
 }
