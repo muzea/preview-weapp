@@ -33,7 +33,7 @@ function valueOfString(expStr: string, store: any, replaeOnly: boolean = false):
   return __valueOf(finalExp, store);
 }
 
-function preview(mountElement: HTMLDivElement, wxml: string, store: any) {
+function render(mountElement: HTMLElement, wxml: string, store: any) {
   const container = document.createElement('div');
   container.innerHTML = wxml;
   const result = walk(container.childNodes, store);
@@ -44,14 +44,14 @@ function preview(mountElement: HTMLDivElement, wxml: string, store: any) {
 
 
 function renderElement(node: Element, store: any): string {
-  const attr = pickAttr(node.attributes, ['class']);
-  let ret = `<${node.localName} ${stringifyAttr(attr)}>`;
+  const attr = pickAttr(node.attributes, ['id', 'class', 'bindtap']);
+  let ret = `<wx-${node.localName} ${stringifyAttr(attr)}>`;
   if (node.childNodes.length) {
     ret += walk(node.childNodes, store);
   } else {
     console.log('why', node);
   }
-  ret += `</${node.localName}>`;
+  ret += `</wx-${node.localName}>`;
   return ret
 }
 
@@ -129,4 +129,4 @@ function walk(nodes: NodeListOf<ChildNode>, store: any):string {
 }
 
 
-export default preview
+export default render

@@ -2,3 +2,4 @@ node_modules
 yarn.lock
 .cache
 dist
+src/*.wxvpkg_dir

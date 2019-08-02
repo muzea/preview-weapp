@@ -1,7 +1,8 @@
-import preview from './preview'
+import { RouterItem } from './type';
+import render from './preview/render'
+import { replaceName } from './preview/style';
+import { getHandler } from './preview/event';
 import { getPageStore, loadPage, injectPage } from './fuck/page';
-
-(window as any).wxPreview = preview
 
 const mountPosition = document.getElementById('weapp') as HTMLDivElement;
 const runButton = document.getElementById('run') as HTMLButtonElement;
@@ -43,10 +44,6 @@ async function loadFile(evt: Event) {
 }
 loadFileInput.addEventListener('change', loadFile);
 
-interface RouterItem {
-  path: string;
-  instance: any;
-}
 
 const routers: RouterItem[] = [];
 let dirName = '';
@@ -73,6 +70,10 @@ function triggerOnShow(pageInstance) {
   }
 }
 
+function getCurrentPageInstance() {
+  return routers[routers.length - 1].instance;
+}
+
 function run(e: Event) {
   e.preventDefault();
   injectPage(window);
@@ -88,8 +89,19 @@ function run(e: Event) {
   });
   triggerOnLoad(routers[0].instance);
   triggerOnShow(routers[0].instance);
-  setInterval(() => {
-    preview(mountPosition, fileMap[pagePath + '.wxml'], routers[0].instance.data);
+  const shadow = mountPosition.attachShadow({mode: 'open'});
+  const wrapper = document.createElement('wx-page');
+  wrapper.setAttribute('id','wrapper');
+  shadow.appendChild(wrapper);
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = replaceName(fileMap[pagePath + '.wxss'], wrapper);
+  const baseStyle = document.getElementById('base-style').cloneNode();
+  shadow.appendChild(baseStyle);
+  shadow.appendChild(styleSheet);
+  const handler = getHandler(getCurrentPageInstance);
+  wrapper.addEventListener('click', handler);
+  (window as any).iid = setInterval(() => {
+    render(wrapper, fileMap[pagePath + '.wxml'], routers[0].instance.data);
   }, 500);
 }
 runButton.addEventListener('click', run);
