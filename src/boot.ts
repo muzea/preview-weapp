@@ -1,7 +1,7 @@
 import { RouterItem } from './type';
-import render from './preview/render'
 import { replaceName } from './preview/style';
 import { getHandler } from './preview/event';
+import { parser, render } from './preview/wxml';
 import { getPageStore, loadPage, injectPage } from './fuck/page';
 
 const mountPosition = document.getElementById('weapp') as HTMLDivElement;
@@ -100,8 +100,20 @@ function run(e: Event) {
   shadow.appendChild(styleSheet);
   const handler = getHandler(getCurrentPageInstance);
   wrapper.addEventListener('click', handler);
+  const pageTree = parser(fileMap[pagePath + '.wxml']);
+  let prev = render(pageTree, routers[0].instance.data);
+  for (const item of prev) {
+    wrapper.appendChild(item);
+  }
   (window as any).iid = setInterval(() => {
-    render(wrapper, fileMap[pagePath + '.wxml'], routers[0].instance.data);
+    const result = render(pageTree, routers[0].instance.data);
+    for (const item of prev) {
+      wrapper.removeChild(item as any);
+    }
+    for (const item of result) {
+      wrapper.appendChild(item);
+    }
+    prev = result;
   }, 500);
 }
 runButton.addEventListener('click', run);

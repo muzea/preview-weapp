@@ -18,7 +18,42 @@ function stringifyAttr(obj: IStringMap): string {
   }, '');
 }
 
+function __valueOf(expStr: string, store: any) {
+  const func = new Function('env', `with(env){return ${expStr}}`);
+  const env = new Proxy({}, {
+    get: function(_, key){
+      const value = store[key];
+      return value;
+    },
+    has: function () {
+      return true;
+    },
+  });
+  return func(env);
+}
+
+function valueOfString(expStr: string, store: any, replaeOnly: boolean = false): any {
+  // console.log('expStr - ', expStr);
+  const finalExp = expStr.replace(/{{(.+?)}}/g, (_: string, exp: string) => {
+    // console.log('exp - ', exp);
+    const ret = __valueOf(exp, store);
+    // console.log('ret - ', ret);
+    return JSON.stringify(ret);
+  });
+  // console.log('finalExp - ', finalExp);
+  if (replaeOnly) {
+    return finalExp;
+  }
+  return __valueOf(finalExp, store);
+}
+
+function isElement(ele: Node):ele is Element {
+  return ele.nodeType === ele.ELEMENT_NODE;
+}
+
 export {
   pickAttr,
   stringifyAttr,
+  valueOfString,
+  isElement,
 };

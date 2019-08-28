@@ -43,11 +43,11 @@ type RenderResult = BuilderResult | null
 function parser(wxml: string) {
   const container = document.createElement('div');
   container.innerHTML = wxml;
-  const result = [];
+  const result: BuilderFunc[] = [];
   for (const item of container.children) {
     result.push(buildElement(item));
   }
-  console.log(result.map(it => it({})));
+  return result;
 }
 
 type IForResult = {
@@ -76,12 +76,25 @@ function checkFor(node: Element): IForResult {
   };
 }
 
-function checkIf(node: Element, store: any): boolean {
+type IIfResult = {
+  has: true
+  ifExp: string
+} | {
+  has: false
+}
+
+function checkIf(node: Element): IIfResult {
   let ifAttr = node.attributes['wx:if'];
   if (ifAttr === undefined) {
-    return true;
+    return {
+      has: false,
+    };
   }
-  return valueOfString(ifAttr.value, store);
+  return {
+    has: true,
+    ifExp: ifAttr.value,
+  };
+  // return valueOfString(ifAttr.value, store);
 }
 
 type BuilderFunc = (store: any) => RenderResult[]
@@ -94,6 +107,7 @@ function buildElement(node: Node):BuilderFunc {
       childrenBuilder.push(buildElement(it));
     }
     const forResult = checkFor(node);
+    const ifResult = checkIf(node);
     let type;
     switch ( node.localName) {
       case NodeType.view:
@@ -107,7 +121,7 @@ function buildElement(node: Node):BuilderFunc {
         break;
     }
     return function block(store: any) {
-      if (!checkIf(node, store)) {
+      if (ifResult.has && valueOfString(ifResult.ifExp, store) === false) {
         return [null];
       }
       if (forResult.has) {
@@ -143,15 +157,42 @@ function buildElement(node: Node):BuilderFunc {
     }
   } else {
     // content
+    const textContent = node.textContent;
     return function content(store: any) {
       return [{
         type: NodeType.content,
-        content: valueOfString(node.textContent, store, true),
+        content: valueOfString(textContent, store, true),
       }];
     }
   }
 }
 
+function renderElement(node: WxNode): Element {
+  let tagName = `wx-${node.type}`;
+  const result = document.createElement(tagName, {});
+  for (const child of (node as NodeView | NodeText | NodeButton).children) {
+    if (child.type === NodeType.content) {
+      const text = document.createTextNode(child.content);
+      result.appendChild(text);
+    } else {
+      result.appendChild(renderElement(child));
+    }
+  }
+  return result;
+}
+
+function render(builderList: BuilderFunc[], store: any) {
+  const stateTree = builderList.map(builder => builder(store));
+  const result: Element[] = [];
+  for (const tree of stateTree) {
+    for (const node of tree) {
+      result.push(renderElement(node));
+    }
+  }
+  return result;
+}
+
 export {
-  parser
+  parser,
+  render,
 };
