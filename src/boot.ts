@@ -1,8 +1,9 @@
 import { RouterItem } from './type';
 import { replaceName } from './preview/style';
 import { getHandler } from './preview/event';
-import { parser, render } from './preview/wxml';
+import { parser, render, updater } from './preview/wxml';
 import { getPageStore, loadPage, injectPage } from './fuck/page';
+import { createRootMountPoint, createPage, mountBaseStyle, mountPageStyle } from './preview/dom';
 
 const mountPosition = document.getElementById('weapp') as HTMLDivElement;
 const runButton = document.getElementById('run') as HTMLButtonElement;
@@ -89,31 +90,18 @@ function run(e: Event) {
   });
   triggerOnLoad(routers[0].instance);
   triggerOnShow(routers[0].instance);
-  const shadow = mountPosition.attachShadow({mode: 'open'});
-  const wrapper = document.createElement('wx-page');
-  wrapper.setAttribute('id','wrapper');
-  shadow.appendChild(wrapper);
-  const styleSheet = document.createElement('style');
-  styleSheet.textContent = replaceName(fileMap[pagePath + '.wxss'], wrapper);
-  const baseStyle = document.getElementById('base-style').cloneNode();
-  shadow.appendChild(baseStyle);
-  shadow.appendChild(styleSheet);
+  const shadow = createRootMountPoint(mountPosition);
+  mountBaseStyle(shadow);
+
+  const wxPage = createPage(shadow);
+  mountPageStyle(shadow, replaceName(fileMap[pagePath + '.wxss'], wxPage));
   const handler = getHandler(getCurrentPageInstance);
-  wrapper.addEventListener('click', handler);
+  wxPage.addEventListener('click', handler);
   const pageTree = parser(fileMap[pagePath + '.wxml']);
-  let prev = render(pageTree, routers[0].instance.data);
-  for (const item of prev) {
-    wrapper.appendChild(item);
-  }
+  let prev = render(pageTree, routers[0].instance.data, wxPage);
+  // console.log(prev);
   (window as any).iid = setInterval(() => {
-    const result = render(pageTree, routers[0].instance.data);
-    for (const item of prev) {
-      wrapper.removeChild(item as any);
-    }
-    for (const item of result) {
-      wrapper.appendChild(item);
-    }
-    prev = result;
+    prev = updater(pageTree, routers[0].instance.data, wxPage, prev);
   }, 500);
 }
 runButton.addEventListener('click', run);
