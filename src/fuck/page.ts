@@ -5,6 +5,9 @@ function setData(nextData) {
     ...this.data,
     ...nextData,
   };
+  if (this.__updater) {
+    this.__updater();
+  }
 }
 
 function Page(page: Object) {

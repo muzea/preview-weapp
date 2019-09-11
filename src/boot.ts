@@ -4,6 +4,7 @@ import { getHandler } from './preview/event';
 import { parser, render, updater } from './preview/wxml';
 import { getPageStore, loadPage, injectPage } from './fuck/page';
 import { createRootMountPoint, createPage, mountBaseStyle, mountPageStyle } from './preview/dom';
+import { debounce } from './function';
 
 const mountPosition = document.getElementById('weapp') as HTMLDivElement;
 const runButton = document.getElementById('run') as HTMLButtonElement;
@@ -88,8 +89,9 @@ function run(e: Event) {
     path: pagePath,
     instance: getPageStore()[pagePath],
   });
-  triggerOnLoad(routers[0].instance);
-  triggerOnShow(routers[0].instance);
+  const instance = routers[0].instance;
+  triggerOnLoad(instance);
+  triggerOnShow(instance);
   const shadow = createRootMountPoint(mountPosition);
   mountBaseStyle(shadow);
 
@@ -97,12 +99,14 @@ function run(e: Event) {
   mountPageStyle(shadow, replaceName(fileMap[pagePath + '.wxss'], wxPage));
   const handler = getHandler(getCurrentPageInstance);
   wxPage.addEventListener('click', handler);
-  const pageTree = parser(fileMap[pagePath + '.wxml']);
-  let prev = render(pageTree, routers[0].instance.data, wxPage);
-  // console.log(prev);
-  (window as any).iid = setInterval(() => {
-    prev = updater(pageTree, routers[0].instance.data, wxPage, prev);
-  }, 500);
+  const bilders = parser(fileMap[pagePath + '.wxml']);
+  let prev = render(bilders, instance.data, wxPage);
+  instance.__pageElement = wxPage;
+  instance.__pageBuilderFunc = bilders;
+  instance.__pageStateTree = prev;
+  instance.__updater = debounce(function() {
+    this.__pageStateTree = updater(this.__pageBuilderFunc, this.data, this.__pageElement, this.__pageStateTree);
+  });
 }
 runButton.addEventListener('click', run);
 

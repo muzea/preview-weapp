@@ -180,6 +180,12 @@ function renderText(node: NodeContent): Node {
 function renderElement(node: WxNode): Element {
   let tagName = `wx-${node.type}`;
   const result = document.createElement(tagName, {});
+  const { attr } = (node as TagNode);
+  if (attr) {
+    Object.keys(attr).forEach(k => {
+      result.setAttribute(k, attr[k])
+    });
+  }
   return result;
 }
 
@@ -265,7 +271,34 @@ function itemNeedReplaceOld(a: WxNode, b: StateTreeNode) {
 }
 
 function updateAttr(now: WxNode, prev: StateTreeNode) {
-
+  const el = prev.el as Element;
+  const { attr } = (now as TagNode);
+  const { attr: prevAttr } = prev;
+  const attrKeys = Object.keys(attr);
+  const prevAttrKeys = Object.keys(prevAttr);
+  if (prevAttrKeys.length === 0) {
+    attrKeys.forEach(k => {
+      el.setAttribute(k, attr[k]);
+    });
+    return;
+  }
+  if (attrKeys.length === 0) {
+    prevAttrKeys.forEach(k => {
+      el.removeAttribute(k);
+    });
+    return;
+  }
+  prevAttrKeys.forEach(k => {
+    if (!attrKeys.includes(k)) {
+      el.removeAttribute(k);
+    }
+  });
+  attrKeys.forEach(k => {
+    if (!prevAttrKeys.includes(k) || attr[k] !== prevAttr[k]) {
+      el.setAttribute(k, attr[k]);
+      return;
+    }
+  });
 }
 
 function huLuanUpdater(stateTree: WxNode[][], mountPoint: Element, prevStateTree: StateTreeNode[][]):StateTreeNode[][] {
@@ -278,6 +311,7 @@ function huLuanUpdater(stateTree: WxNode[][], mountPoint: Element, prevStateTree
           if (item.type === NodeType.content) {
             if (item.content !== old.content) {
               old.el.textContent = item.content;
+              old.content = item.content;
             }
           } else {
             updateAttr(item, old);
