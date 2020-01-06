@@ -12,6 +12,8 @@ function debounce<T extends Function>(fn: T, wait = 30): T {
   } as any;
 }
 
-export {
-  debounce,
-};
+function isFunction(func: any) {
+  return typeof func === 'function';
+}
+
+export { debounce, isFunction };

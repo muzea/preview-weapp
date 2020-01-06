@@ -6,7 +6,7 @@ function getBindtap(element: HTMLElement) {
 }
 
 function triggerTap(currentElement: HTMLElement, target: HTMLElement, pageInstance: any) {
-  const bindtap = getBindtap(currentElement)
+  const bindtap = getBindtap(currentElement);
   if (bindtap) {
     (pageInstance[bindtap] as Function).call(pageInstance, { target });
   }
@@ -23,9 +23,7 @@ function getHandler(getCurrentPageInstance: IGetCurrentPageInstance) {
       currentElement = currentElement.parentElement;
       --limit;
     }
-  }
+  };
 }
 
-export {
-  getHandler
-};
+export { getHandler };

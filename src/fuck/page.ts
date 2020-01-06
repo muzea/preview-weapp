@@ -1,4 +1,7 @@
-const pageStore: any = {};
+import { requirePage } from '../preview/fs';
+import { isFunction } from '../function';
+
+const pageStore: { [path: string]: any } = {};
 
 function setData(nextData) {
   this.data = {
@@ -10,30 +13,34 @@ function setData(nextData) {
   }
 }
 
-function Page(page: Object) {
+function loadPage(path: string) {
+  if (!pageStore[path]) {
+    function pageConstructor(page) {
+      pageStore[path] = page;
+    }
+    requirePage(path + '.js', { Page: pageConstructor });
+  }
+}
+
+function createPageInstance(path: string) {
+  const page = { ...pageStore[path] };
   Object.defineProperty(page, 'setData', {
     value: setData.bind(page),
   });
-  pageStore[pageStore.nextPath] = page;
+  return page;
 }
 
-function injectPage(host: any) {
-  host.Page = Page;
-}
+const LifeTime = {
+  onLoad(page: any) {
+    if (isFunction(page.onLoad)) {
+      page.onLoad();
+    }
+  },
+  onShow(page: any) {
+    if (isFunction(page.onShow)) {
+      page.onShow();
+    }
+  },
+};
 
-function loadPage(path: string, code: string) {
-  pageStore.nextPath = path;
-  const func = new Function(code);
-  func();
-  pageStore.nextPath = '';
-}
-
-function getPageStore() {
-  return pageStore;
-}
-
-export {
-  getPageStore,
-  injectPage,
-  loadPage,
-}
+export { createPageInstance, loadPage, LifeTime };
