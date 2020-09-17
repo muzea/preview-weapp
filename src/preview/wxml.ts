@@ -1,9 +1,11 @@
-import { pickAttr, valueOfString, isElement } from './lib';
+import { pickAttr, valueOfString, isElement, valueOfStringIfHasExp } from './lib';
 
 enum NodeType {
   view = 'view',
   text = 'text',
   button = 'button',
+  img = 'img',
+  _img = 'image',
   content = 'content',
 }
 
@@ -29,6 +31,11 @@ interface NodeButton extends NodeBase {
   children: WxNode[][]
 }
 
+interface NodeImage extends NodeBase {
+  type: NodeType._img
+  children: WxNode[][]
+}
+
 interface NodeContent {
   type: NodeType.content
   content: string
@@ -36,7 +43,7 @@ interface NodeContent {
 
 type TagNode = NodeView | NodeText | NodeButton
 
-type WxNode = NodeView | NodeText | NodeButton | NodeContent
+type WxNode = NodeView | NodeText | NodeButton | NodeContent | NodeImage
 
 interface StateTreeNode extends NodeBase {
   el: Node
@@ -109,7 +116,6 @@ type BuilderFunc = (store: any) => RenderResult[]
 
 function buildElement(node: Node):BuilderFunc {
   if (isElement(node)) {
-    const attr = pickAttr(node.attributes, ['id', 'class', 'bindtap']);
     const childrenBuilder: BuilderFunc[] = [];
     for (const it of node.childNodes) {
       childrenBuilder.push(buildElement(it));
@@ -127,8 +133,23 @@ function buildElement(node: Node):BuilderFunc {
       case NodeType.text:
         type = NodeType.text;
         break;
+      case NodeType.img:
+        type = NodeType._img;
+        break;
     }
     return function block(store: any):TagNode[] {
+      const attr = (Object as any).values({...node.attributes}).map(_attr => {
+        return {
+          key: _attr.name,
+          value: valueOfStringIfHasExp(_attr.textContent, store) || valueOfStringIfHasExp(_attr.value, store),
+        };
+      }).reduce((prev: any, item) => {
+        prev[item.key] = item.value;
+        return prev;
+      }, {});
+      if (node.localName === 'img') {
+        console.log('attrs', attr)
+      }
       if (ifResult.has && valueOfString(ifResult.ifExp, store) === false) {
         return [null];
       }
@@ -136,6 +157,9 @@ function buildElement(node: Node):BuilderFunc {
         const { listExp, itemName, indexName } = forResult;
         const list: any[] = valueOfString(listExp, store);
         const ret:TagNode[] = [];
+        if (!Array.isArray(list)) {
+          return ret;
+        }
         list.forEach((item, index) => {
           const nextStore = {
             ...store,
@@ -182,6 +206,13 @@ function renderElement(node: WxNode): Element {
   const result = document.createElement(tagName, {});
   const { attr } = (node as TagNode);
   if (attr) {
+    if (node.type === NodeType._img) {
+      let fixImage = '';
+      if (attr.src) {
+        fixImage = `background-image: url('${attr.src}'); background-size: cover;`
+      }
+      attr.style = (attr.style || '') + fixImage;
+    }
     Object.keys(attr).forEach(k => {
       result.setAttribute(k, attr[k])
     });
@@ -199,6 +230,7 @@ function huLuanRenderForItem(item: WxNode): StateTreeNode {
   } else {
     const el = renderElement(item);
     const children: StateTreeNode[][] = huLuanRender((item as TagNode).children, el);
+    console.log('item.type', item.type);
     return {
       el,
       ...item,

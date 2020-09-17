@@ -29,10 +29,32 @@ function __valueOf(expStr: string, store: any) {
       return true;
     },
   });
-  return func(env);
+  try {
+    return func(env);
+  } catch (error) {
+    return undefined;
+  }
 }
 
 function valueOfString(expStr: string, store: any, replaeOnly: boolean = false): any {
+  // console.log('expStr - ', expStr);
+  const finalExp = expStr.replace(/{{(.+?)}}/g, (_: string, exp: string) => {
+    // console.log('exp - ', exp);
+    const ret = __valueOf(exp, store);
+    // console.log('ret - ', ret);
+    return JSON.stringify(ret);
+  });
+  // console.log('finalExp - ', finalExp);
+  if (replaeOnly) {
+    return finalExp;
+  }
+  return __valueOf(finalExp, store);
+}
+
+function valueOfStringIfHasExp(expStr: string, store: any, replaeOnly: boolean = false): any {
+  if (!/{{(.+?)}}/.test(expStr)) {
+    return expStr;
+  }
   // console.log('expStr - ', expStr);
   const finalExp = expStr.replace(/{{(.+?)}}/g, (_: string, exp: string) => {
     // console.log('exp - ', exp);
@@ -56,4 +78,5 @@ export {
   stringifyAttr,
   valueOfString,
   isElement,
+  valueOfStringIfHasExp,
 };

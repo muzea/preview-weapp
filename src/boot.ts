@@ -6,7 +6,8 @@ import { createPageInstance, LifeTime } from './fuck/page';
 import { createRootMountPoint, createPage, mountBaseStyle, mountPageStyle } from './preview/dom';
 import { debounce } from './function';
 import { loadFileViaInput, getContent } from './preview/fs';
-import { initApp, getFirstPage } from './fuck/app';
+import { initApp, getFirstPage, AppLifeTime } from './fuck/app';
+import { RouterPush, getCurrentPageInstance } from './fuck/router';
 
 const mountPosition = document.getElementById('weapp') as HTMLDivElement;
 const runButton = document.getElementById('run') as HTMLButtonElement;
@@ -14,32 +15,29 @@ const loadFileInput = document.getElementById('loadFile') as HTMLInputElement;
 
 loadFileInput.addEventListener('change', loadFileViaInput);
 
-const routers: RouterItem[] = [];
-
-function getCurrentPageInstance() {
-  return routers[routers.length - 1].instance;
-}
-
 function run(e: Event) {
   e.preventDefault();
   initApp();
   const pagePath = getFirstPage();
-  routers.push({
+  RouterPush({
     path: pagePath,
     instance: createPageInstance(pagePath),
   });
-  const instance = routers[0].instance;
+  const instance = getCurrentPageInstance();
   LifeTime.onLoad(instance);
   const shadow = createRootMountPoint(mountPosition);
   mountBaseStyle(shadow);
 
   const wxPage = createPage(shadow);
   mountPageStyle(shadow, replaceName(getContent(pagePath + '.wxss'), wxPage));
+  mountPageStyle(shadow, replaceName(getContent('/app.wxss'), wxPage));
   const handler = getHandler(getCurrentPageInstance);
   wxPage.addEventListener('click', handler);
   const builders = parser(getContent(pagePath + '.wxml'));
   let prev = render(builders, instance.data, wxPage);
+  AppLifeTime.onShow();
   LifeTime.onShow(instance);
+  LifeTime.onReady(instance);
   instance.__pageElement = wxPage;
   instance.__pageBuilderFunc = builders;
   instance.__pageStateTree = prev;

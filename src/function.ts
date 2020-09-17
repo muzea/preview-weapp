@@ -2,6 +2,7 @@ function debounce<T extends Function>(fn: T, wait = 30): T {
   let lastArguments;
   let timer = 0;
   return function(...rest) {
+    console.log('debounce call');
     lastArguments = rest;
     if (timer === 0) {
       setTimeout(() => {

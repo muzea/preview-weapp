@@ -1,19 +1,23 @@
-import { getContent } from '../preview/fs';
+import { getContent, requirePage } from '../preview/fs';
 import { loadPage } from './page';
+import { isFunction } from 'util';
+import { getWx } from './wx';
 
-const appStore: any = {};
+const appHost: any = {
+  app: {},
+};
 let appJson: any = {};
 
 function App(app) {
-  appStore.app = app;
+  appHost.app = app;
 }
 
 function injectApp(host: any) {
   host.App = App;
 }
 
-function getAppStore() {
-  return appStore;
+function getApp() {
+  return appHost.app;
 }
 
 function loadAppJson() {
@@ -22,6 +26,8 @@ function loadAppJson() {
 
 function initApp() {
   loadAppJson();
+  loadApp();
+  AppLifeTime.onLaunch();
   for (const pagePath of appJson.pages) {
     loadPage('/' + pagePath);
   }
@@ -32,4 +38,23 @@ function getFirstPage() {
   return '/' + firstPage;
 }
 
-export { injectApp, getAppStore, initApp, getFirstPage };
+const AppPath = '/app.js';
+
+function loadApp() {
+  requirePage(AppPath, { App, wx: getWx() });
+}
+
+const AppLifeTime = {
+  onLaunch() {
+    if (isFunction(appHost.app.onLoad)) {
+      appHost.app.onLaunch();
+    }
+  },
+  onShow() {
+    if (isFunction(appHost.app.onShow)) {
+      appHost.app.onShow();
+    }
+  },
+};
+
+export { injectApp, getApp, initApp, getFirstPage, loadApp, AppLifeTime };

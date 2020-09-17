@@ -1,3 +1,6 @@
+import { getWx } from '../fuck/wx';
+import { getGlobalVar } from '../fuck/global';
+
 interface JsModule {
   exports: any;
   dependencies: any[];
@@ -8,14 +11,14 @@ let fileMap: { [name: string]: string } = {};
 let exportMap: { [path: string]: JsModule } = {};
 
 function pathResolve(current: string, path: string): string {
-  if (path.startsWith('.')) {
-    path = path.substring(1);
-  }
   if (path.startsWith('/')) {
     return path;
   }
-  const paths = path.split('/').filter(it => it.length);
-  const base = current.split('/');
+  if (path.startsWith('.')) {
+    path = path.substring(1);
+  }
+  const paths = path.split('/').filter((it) => it.length);
+  const base = current === '' ? [] : current.split('/');
   for (const item of paths) {
     if (item === '..') {
       base.pop();
@@ -47,11 +50,25 @@ function relativeFile(current: string, fileName: string) {
   throw new Error('文件名不对');
 }
 
-function requirePage(path: string, injectVars: { [name: string]: any } = {}) {
-  const code = fileMap[path];
+function invokeCode(code: string, injectVars: { [name: string]: any } = {}) {
   const keys = Object.keys(injectVars);
   const func = new Function(...keys, code);
-  func(...keys.map(k => injectVars[k]));
+  return func(...keys.map((k) => injectVars[k]));
+}
+
+function requirePage(path: string, injectVars: { [name: string]: any } = {}) {
+  const code = fileMap[path];
+  invokeCode(code, { ...getGlobalVar(), ...injectVars, require: createRequireContext(path) });
+}
+
+function createRequireContext(currentFile: string) {
+  const list = currentFile.split('/');
+  list.pop();
+  const current = list.join('/');
+  return function requireWithContext(path: string) {
+    const realPath = pathResolve(current, path);
+    return requireJs(realPath);
+  };
 }
 
 function requireJs(path: string): any {
@@ -74,20 +91,24 @@ function requireJs(path: string): any {
   };
   exportMap[path] = jsModule;
   const code = fileMap[path];
-  const func = new Function('module', code);
-  func(jsModule);
+  const injectVars = {
+    module: jsModule,
+    ...getGlobalVar(),
+  };
+  invokeCode(code, injectVars);
+  console.log('require js file result ', path, jsModule);
   return jsModule.exports;
 }
 
 function readFile(file: any): Promise<string> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const reader = new FileReader();
     reader.readAsText(file, 'UTF-8');
-    reader.onload = function(evt) {
+    reader.onload = function (evt) {
       // console.log('onload', evt);
       resolve((evt.target as any).result);
     };
-    reader.onerror = function() {
+    reader.onerror = function () {
       throw new Error('cannot read file');
     };
   });
